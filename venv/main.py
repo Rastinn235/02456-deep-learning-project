@@ -10,9 +10,9 @@ import matplotlib.pyplot as plt
 #project specific
 #import pandas as pd
 import transformers as hf #hf = huggingFace
-
 import dataload2 as dl
 from settings import Settings
+from Helperfunctions import sigmoid
 import midi
 import model
 
@@ -26,6 +26,7 @@ printPlots = settings.printPlots
 playSample = settings.playSample
 forceCPU = settings.forceCPU
 batchSize = settings.hyperparameters['batchSize']
+useSavedNet = settings.useSavedNet
 
 print("hello \n")
 useCuda,device = model.getDevice(forceCPU=forceCPU)
@@ -46,30 +47,38 @@ if(printPlots):
     midi.plotPianoRoll(sampleTarget,fs=samplefs)
     plt.figure()
     plt.show()
+
 if(playSample):
     #play the piano roll
-    midi.playPianoRoll(midiroll,playTime=2)
+    midi.playPianoRoll(midiroll,fs=samplefs,playTime=2)
 
 # create dataloaders
-dataloaderTrain = DataLoader(training,batch_size=batchSize, shuffle=True)
-dataloaderValidation = DataLoader(validation,batch_size=batchSize, shuffle=True)
-dataloaderTest = DataLoader(test,batch_size=batchSize, shuffle=True)
+dataloaderTrain = DataLoader(training,batch_size=batchSize, shuffle=False)
+dataloaderValidation = DataLoader(validation,batch_size=batchSize, shuffle=False)
+dataloaderTest = DataLoader(test,batch_size=batchSize, shuffle=False)
 # init net
-net = model.LSTMnet(batchSize=batchSize)  #batchfirst [batch,seq,128]
+if(useSavedNet):
+    net = torch.load('net.pt')
+    net = net[0]
+    net.eval()
+else:
+    net = model.LSTMnet(batchSize=batchSize)  #batchfirst [batch,seq,128]
+
 print(net)
 net = net.to(device) #Send to device (GPU or CPU)
 # test net
 sampleInputTensor = torch.Tensor(sampleInput).view(1,-1,128) #add batch dimension
 sampleOutput = net(sampleInputTensor.to(device)) #send to network!
 
-#permute back to [feature,seq], send to cpu, detach and convert to ndarray
-sampleOutput = sampleOutput.cpu().detach().numpy()
+#send to cpu, detach and convert to ndarray
+sampleOutput = sigmoid.sigmoid(sampleOutput.cpu().detach().numpy())
+midi.playPianoRoll(sampleOutput, fs=samplefs, playTime=2)
 if (printPlots):
     # plot notes
-    midi.plotPianoRoll(sampleInput)
+    midi.plotPianoRoll(sampleInput,fs=samplefs)
     plt.figure()
     plt.show()
-    midi.plotPianoRoll(sampleOutput)
+    midi.plotPianoRoll(sampleOutput,fs=samplefs)
     plt.figure()
     plt.show()
 
@@ -77,6 +86,7 @@ del sampleInput,sampleInputTensor,sampleOutput,samplefs
 
 print('Starting network training')
 net = model.trainNetwork(net=net,trainSet=dataloaderTrain,testSet=dataloaderTest,validationSet=dataloaderValidation,cudaDevice=device)
-torch.save(net,'net.pth')
+
+torch.save(net[0],'net.pt')
 
 print('Main finished!')

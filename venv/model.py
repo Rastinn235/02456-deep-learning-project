@@ -7,11 +7,13 @@ import torch.distributions as distributions
 from settings import Settings
 import numpy as np
 import matplotlib.pyplot as plt
+from Helperfunctions import tictoc
 
 class LSTMnet(nn.Module):
     def __init__(self,batchSize,dropoutProbability = -1,settings = Settings()):
         self.hiddenSize = settings.hyperparameters['LSTMHiddenSize']
         self.numLayers = settings.hyperparameters['LSTMLayers']
+        self.batchSize = settings.hyperparameters['batchSize']
         if(dropoutProbability<0):
             dropoutProbability = settings.hyperparameters['dropoutProbability']
 
@@ -24,22 +26,22 @@ class LSTMnet(nn.Module):
                 bidirectional=False,
                 batch_first=True,
                 dropout=dropoutProbability)
-        self.relu = nn.ReLU()
+        self.relu = nn.LeakyReLU()
 
         self.l_out = nn.Linear(in_features=self.hiddenSize,
                                out_features=128,
                                bias=False)
-        self.softmax = nn.Softmax(dim=1)
+        self.softmax = nn.LogSoftmax(dim=1)
 
 
     def forward(self,x):
         x, (h,c) = self.lstm(x)
 
         # flatten for feed-forward layer
-        x = x.view(-1,self.lstm.hidden_size)
+        x = x.view(-1,self.lstm.hidden_size)#x.reshape(self.batchSize,-1,self.lstm.hidden_size)# # TODO: issues here with minibatch >1
         x = self.relu(x)
         x = self.l_out(x)
-     #   x = self.softmax(x)
+        x = self.softmax(x)
         return x
 
 def getDevice(forceCPU = False):
@@ -75,7 +77,7 @@ def trainNetwork(net,trainSet,testSet,validationSet,cudaDevice,settings=Settings
     if (settings.lowMemory):
         torch.cuda.empty_cache()
 
-    criterion = nn.BCEWithLogitsLoss() #CrossEntropyLoss can not be used as we have multi-labeling (several notes at once)
+    criterion = nn.BCEWithLogitsLoss() #nn.KLDivLoss()
     optimizer = optim.SGD(net.parameters(),lr = lr,weight_decay=weightDecay)
 
     trainingLoss,validationLoss = [],[]
@@ -95,6 +97,7 @@ def trainNetwork(net,trainSet,testSet,validationSet,cudaDevice,settings=Settings
         idx = 0
         for input,target,_ in trainSet:
             print('  trainNetwork: training on sample {}'.format(idx))
+            #tictoc.tic() # ***
             #input and target dim [batch,seq,feature]
             # convert inputs and targets to tensors and send to Cuda
             input = input.float()
@@ -108,16 +111,19 @@ def trainNetwork(net,trainSet,testSet,validationSet,cudaDevice,settings=Settings
                 target = target.view(1,-1,128)
             target = target.to(cudaDevice)
 
-
-            outputs = net(input)
-            if(batchSize==1):
-                outputs = outputs.view(1,-1,128)
-
             if(settings.lowMemory):
                 with torch.cuda.amp.autocast():
+                    outputs = net(input)
+                    if (batchSize == 1):
+                        outputs = outputs.view(1, -1, 128)
+
                     loss = criterion(outputs,target)
             else:
+                outputs = net(input)
+                if (batchSize == 1):
+                    outputs = outputs.view(1, -1, 128)
                 loss = criterion(outputs,target)
+
             #backward pass
             if(settings.lowMemory):
                 torch.cuda.empty_cache()
@@ -140,6 +146,8 @@ def trainNetwork(net,trainSet,testSet,validationSet,cudaDevice,settings=Settings
             idx = idx+1
             if(settings.lowMemory):
                 torch.cuda.empty_cache()
+
+            #tictoc.toc()
 
 
         # validation
@@ -164,7 +172,7 @@ def trainNetwork(net,trainSet,testSet,validationSet,cudaDevice,settings=Settings
                     loss = criterion(outputs,target)
             else:
                 loss = criterion(outputs,target)
-            epochValidationLoss += loss.detach().cpu().numpy()
+            epochValidationLoss += loss.detach().cpu().numpy() #/ len(target)
             idx = idx+1
             if(settings.lowMemory):
                 torch.cuda.empty_cache()

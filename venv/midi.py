@@ -11,12 +11,12 @@ from sounddevice import play,stop
 import time
 import warnings
 
-defaultFs = 50 #100 #frequency of column updates. i.e each column is spaced apart by 1/fs seconds
+defaultFs = 50 #100 #frequency of column updates per second. i.e each column is spaced apart by 1/fs seconds
     # should probably be made to depend on the tempo. So defaultFS = tempo*12; 12 times per quarter note allows to have proper timing
     # of both quarter and triplet notes.
 audioFs = 16000 #audio sample rate frequency. Used in playPianoRoll
 
-def midi2roll(midiFileName,instrument = 0,fs=defaultFs):
+def midi2roll(midiFileName,instrument = 0,fs=defaultFs,settings = Settings()):
     """
     :param midiFileName: filename including path of the midi file
     :param instrument:  which instrument to extract to roll. http://fmslogo.sourceforge.net/manual/midi-instrument.html
@@ -26,11 +26,17 @@ def midi2roll(midiFileName,instrument = 0,fs=defaultFs):
     midiPretty = pretty_midi.PrettyMIDI(midiFileName)
 
     _,midiTempo = midiPretty.get_tempo_changes() #get tempo events
- #   if(midiTempo.size> 0):
- #       fs = midiTempo#*12 #currently assumes just 1 event
+    if(midiTempo.size> 0):
+        fs = midiTempo#*12 #currently assumes just 1 event
 
     midiPiano = midiPretty.instruments[instrument] #channel 0 = piano channel if there are multiple
     pianoRoll = midiPiano.get_piano_roll(fs)
+    if(settings.reduceSequenceLengthSeconds>0):
+        idx = int(np.round(fs * settings.reduceSequenceLengthSeconds))
+        if(len(pianoRoll[1])>idx): #only reduce length if song is longer than idx
+            pianoRoll = pianoRoll[:,0:idx]
+        else: #else zero-pad
+            pianoRoll = np.hstack((pianoRoll,np.zeros((128,idx-len(pianoRoll[1])))))
     return pianoRoll, fs
 
 def splitLowHighNotes(pianoRoll,noteSplit = 53):
@@ -94,7 +100,7 @@ def plotPianoRoll(roll, startPitch=21,endPitch=108,settings = Settings(),fs = de
              fmin=pretty_midi.note_number_to_hz(startPitch))
 
 
-def playPianoRoll(instrumentRoll,sf2Path=None,audioFs = audioFs,fs=defaultFs,playTime = -1):
+def playPianoRoll(instrumentRoll,sf2Path=None,audioFs = audioFs,fs=defaultFs,playTime = -1,settings=Settings()):
     """
 
     :param instrumentRoll: pianoroll [L x 128]
@@ -104,7 +110,10 @@ def playPianoRoll(instrumentRoll,sf2Path=None,audioFs = audioFs,fs=defaultFs,pla
     :param playTime: how long to play
     :return:
     """
+    threshold = settings.pianoThresholding
+    instrumentRoll = thresholdPianoRoll(instrumentRoll,threshold=threshold)
     instrumentRoll = instrumentRoll.transpose()
+
     instrument = reversepianoRoll.piano_roll_to_pretty_midi(instrumentRoll,fs)
 
     try:
