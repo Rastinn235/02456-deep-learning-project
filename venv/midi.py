@@ -27,7 +27,8 @@ def midi2roll(midiFileName,instrument = 0,fs=defaultFs,settings = Settings()):
 
     _,midiTempo = midiPretty.get_tempo_changes() #get tempo events
     if(midiTempo.size> 0):
-        fs = midiTempo#*12 #currently assumes just 1 event
+        #midiTempo is in BPM
+        fs = int(np.ceil(midiTempo[0]/60 *12)) #bpm/60 = bps, *12 to get both 16th and triols
 
     midiPiano = midiPretty.instruments[instrument] #channel 0 = piano channel if there are multiple
     pianoRoll = midiPiano.get_piano_roll(fs)
@@ -98,6 +99,7 @@ def plotPianoRoll(roll, startPitch=21,endPitch=108,settings = Settings(),fs = de
         librosa.display.specshow(roll[startPitch:endPitch],
              hop_length=1, sr=fs, x_axis='time', y_axis='cqt_note',
              fmin=pretty_midi.note_number_to_hz(startPitch))
+
 
 
 def playPianoRoll(instrumentRoll,sf2Path=None,audioFs = audioFs,fs=defaultFs,playTime = -1,settings=Settings()):

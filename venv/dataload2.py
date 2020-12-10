@@ -43,7 +43,7 @@ def createInputsTargetsFromPianoRoll(pianoRoll):
     """
 
     inputs = pianoRoll
-    targets = np.roll(pianoRoll,shift = 1,axis = 0)
+    targets = np.roll(pianoRoll,shift = -1,axis = 0)
     return inputs, targets
 
 class MaestroDataset(Dataset):

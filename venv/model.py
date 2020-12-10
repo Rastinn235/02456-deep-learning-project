@@ -97,7 +97,7 @@ def trainNetwork(net,trainSet,testSet,validationSet,cudaDevice,settings=Settings
         idx = 0
         for input,target,_ in trainSet:
             print('  trainNetwork: training on sample {}'.format(idx))
-            #tictoc.tic() # ***
+          #  tictoc.tic() # ***
             #input and target dim [batch,seq,feature]
             # convert inputs and targets to tensors and send to Cuda
             input = input.float()
@@ -147,7 +147,7 @@ def trainNetwork(net,trainSet,testSet,validationSet,cudaDevice,settings=Settings
             if(settings.lowMemory):
                 torch.cuda.empty_cache()
 
-            #tictoc.toc()
+           # tictoc.toc()
 
 
         # validation
@@ -163,14 +163,16 @@ def trainNetwork(net,trainSet,testSet,validationSet,cudaDevice,settings=Settings
             target = target.float()
             target = target.to(cudaDevice)
 
-            outputs = net(input)
-            if (batchSize == 1):
-                outputs = outputs.view(1, -1, 128)
-
             if(settings.lowMemory):
                 with torch.cuda.amp.autocast():
+                    outputs = net(input)
+                    if (batchSize == 1):
+                        outputs = outputs.view(1, -1, 128)
                     loss = criterion(outputs,target)
             else:
+                outputs = net(input)
+                if (batchSize == 1):
+                    outputs = outputs.view(1, -1, 128)
                 loss = criterion(outputs,target)
             epochValidationLoss += loss.detach().cpu().numpy() #/ len(target)
             idx = idx+1

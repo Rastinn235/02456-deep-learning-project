@@ -12,9 +12,11 @@ midi.plotPianoRoll(target)
 plt.figure(figsize=(8, 4))
 plt.show()
 
-
-
-
+# test input/target creation
+tmp = np.zeros((50,128))
+tmp[25,100] = 1
+tmpInput,tmpTarget = dl.createInputsTargetsFromPianoRoll(tmp)
+assert((tmpInput[25,:] == tmpTarget[24,:]).all())
 
 """
 class Dataload:

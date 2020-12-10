@@ -42,10 +42,10 @@ print("example shape: ", sampleInput.shape)
 if(printPlots):
     #plot notes
     midi.plotPianoRoll(sampleInput,fs=samplefs)
-    plt.figure()
+    plt.figure(num=1,figsize=(10,8),dpi=800)
     plt.show()
     midi.plotPianoRoll(sampleTarget,fs=samplefs)
-    plt.figure()
+    plt.figure(figsize=(10,8),dpi=800)
     plt.show()
 
 if(playSample):
@@ -53,13 +53,13 @@ if(playSample):
     midi.playPianoRoll(midiroll,fs=samplefs,playTime=2)
 
 # create dataloaders
-dataloaderTrain = DataLoader(training,batch_size=batchSize, shuffle=False)
-dataloaderValidation = DataLoader(validation,batch_size=batchSize, shuffle=False)
-dataloaderTest = DataLoader(test,batch_size=batchSize, shuffle=False)
+dataloaderTrain = DataLoader(training,batch_size=batchSize, shuffle=True)
+dataloaderValidation = DataLoader(validation,batch_size=batchSize, shuffle=True)
+dataloaderTest = DataLoader(test,batch_size=batchSize, shuffle=True)
 # init net
 if(useSavedNet):
     net = torch.load('net.pt')
-    net = net[0]
+    #net = net
     net.eval()
 else:
     net = model.LSTMnet(batchSize=batchSize)  #batchfirst [batch,seq,128]
@@ -72,7 +72,7 @@ sampleOutput = net(sampleInputTensor.to(device)) #send to network!
 
 #send to cpu, detach and convert to ndarray
 sampleOutput = sigmoid.sigmoid(sampleOutput.cpu().detach().numpy())
-midi.playPianoRoll(sampleOutput, fs=samplefs, playTime=2)
+#midi.playPianoRoll(sampleOutput, fs=samplefs, playTime=2)
 if (printPlots):
     # plot notes
     midi.plotPianoRoll(sampleInput,fs=samplefs)

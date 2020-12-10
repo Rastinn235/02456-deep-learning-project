@@ -18,19 +18,19 @@ class Settings:
         'weightDecay': 0,
         'batchSize':1,
         'LSTMHiddenSize': 100,
-        'LSTMLayers': 5,
+        'LSTMLayers': 3,
         'dropoutProbability': 0.5
     }
     # various settings
-    useSavedNet = False
-    pianoThresholding = 0.05
+    useSavedNet = True
+    pianoThresholding = 0.1 #other tests: 0.1,0.01 #1/128 = random
     diminishedSet = True
-    diminishFactor = 5
+    diminishFactor = 10
     printLossEverynEpoch = 1
     playSample = False
-    printPlots = False
-    lowMemory = False #try to reduce memory requirements through clearing caches and using fp16 for all gradients, etc
-    reduceSequenceLengthSeconds = 300 # reduce sequence length to n seconds. Set to a value between [-inf:0] to have full sequence lengths
+    printPlots = True
+    lowMemory = True #try to reduce memory requirements through clearing caches and using fp16 for all gradients, etc
+    reduceSequenceLengthSeconds = 60 # reduce sequence length to n seconds. Set to a value between [-inf:0] to have full sequence lengths
                                         # will also zero-pad if sequencelength < reduceSequenceLengthSeconds
     forceCPU = False #force to work on CPU instead of autoselect dev
 

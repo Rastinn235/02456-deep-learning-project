@@ -1,0 +1,29 @@
+network:
+    hyperparameters = {
+        'epoch': 5,
+        'lr': 0.9,
+        'weightDecay': 0,
+        'batchSize':1,
+        'LSTMHiddenSize': 100,
+        'LSTMLayers': 3,
+        'dropoutProbability': 0.5
+	}
+
+seqlength = 600s
+1561 normal gpumem
+1079 low-memory gpumem
+
+
+seqlength = 0.1s
+595 low-memory
+595 1s normal
+
+timing:
+seqlength=600s
+12.32s normal
+11.7s low-memory
+
+
+seqlength = 300
+1025normal gpumem - 6.26s
+839 low-memory gpumem - 5.89s
