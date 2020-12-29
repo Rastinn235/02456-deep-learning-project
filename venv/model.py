@@ -38,7 +38,8 @@ class LSTMnet(nn.Module):
         x, (h,c) = self.lstm(x)
 
         # flatten for feed-forward layer
-        x = x.view(-1,self.lstm.hidden_size)#x.reshape(self.batchSize,-1,self.lstm.hidden_size)# # TODO: issues here with minibatch >1
+        x.reshape(self.batchSize, -1, self.lstm.hidden_size)
+        #x = x.view(-1,self.lstm.hidden_size)## # TODO: issues here with minibatch >1
         x = self.relu(x)
         x = self.l_out(x)
         x = self.softmax(x)
@@ -78,7 +79,7 @@ def trainNetwork(net,trainSet,testSet,validationSet,cudaDevice,settings=Settings
         torch.cuda.empty_cache()
 
     criterion = nn.BCEWithLogitsLoss() #nn.KLDivLoss()
-    optimizer = optim.SGD(net.parameters(),lr = lr,weight_decay=weightDecay)
+    optimizer = optim.Adam(net.parameters(),lr = lr,weight_decay=weightDecay)#optim.SGD(net.parameters(),lr = lr,weight_decay=weightDecay)
 
     trainingLoss,validationLoss = [],[]
 
@@ -180,7 +181,7 @@ def trainNetwork(net,trainSet,testSet,validationSet,cudaDevice,settings=Settings
                 torch.cuda.empty_cache()
 
         trainingLoss.append(epochTrainingLoss/len(trainSet))
-        validationLoss.append(epochTrainingLoss/len(validationSet))
+        validationLoss.append(epochValidationLoss/len(validationSet))
 
 
         if epoch % printLossEverynEpoch == 0:

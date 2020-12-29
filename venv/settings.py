@@ -13,26 +13,26 @@ class Settings:
     }
 
     hyperparameters = {
-        'epoch': 5,
-        'lr': 0.9,
+        'epoch': 10,
+        'lr': 0.1,
         'weightDecay': 0,
-        'batchSize':1,
+        'batchSize':5,
         'LSTMHiddenSize': 100,
         'LSTMLayers': 3,
-        'dropoutProbability': 0.5
+        'dropoutProbability': 0.3
     }
     # various settings
-    useSavedNet = True
-    pianoThresholding = 0.02 #other tests: 0.1,0.01 #1/128 = random
-    diminishedSet = True
-    diminishFactor = 10
+    useSavedNet = False
+    savedNetPath = 'net.pt'
+    pianoThresholding = 0.1 #other tests: 0.1,0.01 #1/128 = random
+    diminishedSet = False
+    diminishFactor = 100
     printLossEverynEpoch = 1
     playSample = False
     printPlots = True
     lowMemory = True #try to reduce memory requirements through clearing caches and using fp16 for all gradients, etc
     reduceSequenceLengthSeconds = 60 # reduce sequence length to n seconds. Set to a value between [-inf:0] to have full sequence lengths
                                         # will also zero-pad if sequencelength < reduceSequenceLengthSeconds
-    forceCPU = False #force to work on CPU instead of autoselect dev
+    forceCPU = False #force to work on CPU instead of autoselect device based on found CUDAs
 
-    quantizationPeriod = 16
-    length = 128 # 4 bars in 1/16 period
+
