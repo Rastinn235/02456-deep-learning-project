@@ -72,7 +72,7 @@ sampleOutput = net(sampleInputTensor.to(device)) #send to network!
 
 #send to cpu, detach and convert to ndarray
 sampleOutput = sigmoid.sigmoid(sampleOutput.cpu().detach().numpy())
-#midi.playPianoRoll(sampleOutput, fs=samplefs, playTime=2)
+midi.playPianoRoll(sampleOutput, fs=samplefs,)
 if (printPlots):
     # plot notes
     midi.plotPianoRoll(sampleInput,fs=samplefs)

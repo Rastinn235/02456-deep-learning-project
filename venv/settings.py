@@ -23,7 +23,7 @@ class Settings:
     }
     # various settings
     useSavedNet = True
-    pianoThresholding = 0.1 #other tests: 0.1,0.01 #1/128 = random
+    pianoThresholding = 0.02 #other tests: 0.1,0.01 #1/128 = random
     diminishedSet = True
     diminishFactor = 10
     printLossEverynEpoch = 1
