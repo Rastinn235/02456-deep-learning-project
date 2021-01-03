@@ -85,7 +85,7 @@ def trainNetwork(net,trainSet,testSet,validationSet,cudaDevice,settings=Settings
     if (lowMemory):
         torch.cuda.empty_cache()
 
-    criterion = nn.KLDivLoss()#nn.BCEWithLogitsLoss() #
+    criterion = nn.BCEWithLogitsLoss() #
     optimizer = optim.Adam(net.parameters(),lr = lr,weight_decay=weightDecay)#optim.SGD(net.parameters(),lr = lr,weight_decay=weightDecay)
 
     if(useCheckpoints and os.path.exists(checkpointPath)):
