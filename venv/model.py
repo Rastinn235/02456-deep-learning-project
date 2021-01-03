@@ -1,3 +1,4 @@
+import os
 import torch
 import torch.nn as nn
 import torch.nn.functional as F
@@ -58,7 +59,7 @@ def getDevice(forceCPU = False):
     return useCuda,device
 
 def plotLosses(trainingLoss,validationLoss =[],testLoss = []):
-    epoch = np.arange(len(trainingLoss))
+    epoch = np.arange(start = 1, stop = len(trainingLoss) + 1)
     plt.figure()
     plt.plot(epoch, trainingLoss, 'r', label='Training loss')
     if(validationLoss):
@@ -75,19 +76,42 @@ def trainNetwork(net,trainSet,testSet,validationSet,cudaDevice,settings=Settings
     weightDecay = settings.hyperparameters['weightDecay']
     batchSize = settings.hyperparameters['batchSize']
     printLossEverynEpoch = settings.printLossEverynEpoch
-    if (settings.lowMemory):
+    lowMemory = settings.lowMemory
+    useCheckpoints = settings.useCheckpoints
+    checkpointPath = settings.checkpointPath
+
+    epoch = 1
+
+    if (lowMemory):
         torch.cuda.empty_cache()
 
-    criterion = nn.BCEWithLogitsLoss() #nn.KLDivLoss()
+    criterion = nn.KLDivLoss()#nn.BCEWithLogitsLoss() #
     optimizer = optim.Adam(net.parameters(),lr = lr,weight_decay=weightDecay)#optim.SGD(net.parameters(),lr = lr,weight_decay=weightDecay)
 
-    trainingLoss,validationLoss = [],[]
+    if(useCheckpoints and os.path.exists(checkpointPath)):
+        checkpoint = torch.load(checkpointPath)
+        if(checkpoint['epoch'] >= numEpoch):
+            print('trainNetwork: invalid checkpoint, epoch > numEpoch')
+            print('trainNetwork: Restarting network training and deleting previous checkpoints')
+            os.remove(checkpointPath)
+            trainingLoss, validationLoss = [], []
+        else:
+            net.load_state_dict(checkpoint['net_state_dict'])
+            optimizer.load_state_dict(checkpoint['optimizer_state_dict'])
+            epoch = checkpoint['epoch']
+            trainingLoss = checkpoint['trainingLoss']
+            validationLoss = checkpoint['validationLoss']
+            print('trainNetwork: previous checkpoint found!')
+    else:
+        if(useCheckpoints):
+            print('No previous checkpoints found')
+        trainingLoss,validationLoss = [],[]
 
-    if(settings.lowMemory):
+    if(lowMemory):
         #set to fp16 to reduce memory
         scaler = torch.cuda.amp.GradScaler()
 
-    for epoch in range(numEpoch):
+    while epoch<=numEpoch:
         print('trainNetwork: Starting Epoch {}'.format(epoch))
         epochTrainingLoss = 0
         epochValidationLoss = 0
@@ -97,7 +121,7 @@ def trainNetwork(net,trainSet,testSet,validationSet,cudaDevice,settings=Settings
         print('trainNetwork: model in training mode')
         idx = 0
         for input,target,_ in trainSet:
-            print('  trainNetwork: training on sample {}'.format(idx))
+          #  print('  trainNetwork: training on sample {}'.format(idx))
           #  tictoc.tic() # ***
             #input and target dim [batch,seq,feature]
             # convert inputs and targets to tensors and send to Cuda
@@ -112,7 +136,7 @@ def trainNetwork(net,trainSet,testSet,validationSet,cudaDevice,settings=Settings
                 target = target.view(1,-1,128)
             target = target.to(cudaDevice)
 
-            if(settings.lowMemory):
+            if(lowMemory):
                 with torch.cuda.amp.autocast():
                     outputs = net(input)
                     if (batchSize == 1):
@@ -126,15 +150,15 @@ def trainNetwork(net,trainSet,testSet,validationSet,cudaDevice,settings=Settings
                 loss = criterion(outputs,target)
 
             #backward pass
-            if(settings.lowMemory):
+            if(lowMemory):
                 torch.cuda.empty_cache()
             optimizer.zero_grad()
-            if (settings.lowMemory):
+            if (lowMemory):
                 torch.cuda.empty_cache()
                 scaler.scale(loss).backward()
             else:
                 loss.backward()
-            if (settings.lowMemory):
+            if (lowMemory):
                # print('After backward prop')
                # print('memory_allocated', torch.cuda.memory_allocated() / 1e9, 'memory_cached', torch.cuda.memory_cached() / 1e9)
                 torch.cuda.empty_cache()
@@ -145,7 +169,7 @@ def trainNetwork(net,trainSet,testSet,validationSet,cudaDevice,settings=Settings
 
             epochTrainingLoss += loss.detach().cpu().numpy()
             idx = idx+1
-            if(settings.lowMemory):
+            if(lowMemory):
                 torch.cuda.empty_cache()
 
            # tictoc.toc()
@@ -156,7 +180,7 @@ def trainNetwork(net,trainSet,testSet,validationSet,cudaDevice,settings=Settings
         print('trainNetwork: model in evaluation mode')
         idx = 0
         for input,target,_ in validationSet:
-            print('  trainNetwork: validation on sample {}'.format(idx))
+         #   print('  trainNetwork: validation on sample {}'.format(idx))
             input = input.float()
             if (batchSize == 1):
                 input = input.view(1, -1, 128)  # some issues were seen where no batch dimension was added
@@ -164,7 +188,7 @@ def trainNetwork(net,trainSet,testSet,validationSet,cudaDevice,settings=Settings
             target = target.float()
             target = target.to(cudaDevice)
 
-            if(settings.lowMemory):
+            if(lowMemory):
                 with torch.cuda.amp.autocast():
                     outputs = net(input)
                     if (batchSize == 1):
@@ -175,19 +199,27 @@ def trainNetwork(net,trainSet,testSet,validationSet,cudaDevice,settings=Settings
                 if (batchSize == 1):
                     outputs = outputs.view(1, -1, 128)
                 loss = criterion(outputs,target)
-            epochValidationLoss += loss.detach().cpu().numpy() #/ len(target)
+            epochValidationLoss += loss.detach().cpu().numpy()
             idx = idx+1
-            if(settings.lowMemory):
+            if(lowMemory):
                 torch.cuda.empty_cache()
 
         trainingLoss.append(epochTrainingLoss/len(trainSet))
         validationLoss.append(epochValidationLoss/len(validationSet))
 
+        if (useCheckpoints): #save checkpoint
+            torch.save({
+                'epoch': epoch,
+                'net_state_dict': net.state_dict(),
+                'optimizer_state_dict': optimizer.state_dict(),
+                'trainingLoss': trainingLoss,
+                'validationLoss': validationLoss
+            }, checkpointPath)
 
         if epoch % printLossEverynEpoch == 0:
             print(f'Epoch {epoch}, training loss: {trainingLoss[-1]}, validation loss: {validationLoss[-1]}')
 
         plotLosses(trainingLoss=trainingLoss,validationLoss=validationLoss)
-
+        epoch = epoch +1
         #end epoch
     return net,trainingLoss,validationLoss

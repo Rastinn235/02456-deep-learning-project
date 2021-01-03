@@ -6,6 +6,7 @@ import torch.distributions as distributions
 import torch.functional as F
 #plotting
 import matplotlib.pyplot as plt
+import os
 
 #project specific
 #import pandas as pd
@@ -27,6 +28,7 @@ playSample = settings.playSample
 forceCPU = settings.forceCPU
 batchSize = settings.hyperparameters['batchSize']
 useSavedNet = settings.useSavedNet
+useCheckpoints = settings.useCheckpoints
 
 print("hello \n")
 useCuda,device = model.getDevice(forceCPU=forceCPU)
@@ -50,7 +52,7 @@ if(printPlots):
     plt.figure(figsize=(10,8),dpi=800)
     plt.show()
 
-if(playSample):
+if(playSample): #play sample pianoroll
     #play the piano roll
     midi.playPianoRoll(midiroll,fs=samplefs,playTime=2)
 
@@ -58,15 +60,19 @@ if(playSample):
 dataloaderTrain = DataLoader(training,batch_size=batchSize, shuffle=True)
 dataloaderValidation = DataLoader(validation,batch_size=batchSize, shuffle=True)
 dataloaderTest = DataLoader(test,batch_size=batchSize, shuffle=True)
+
 # init net
 if(useSavedNet):
-    print('Using saved net.pt\n')
+    print('Using saved net: ',settings.savedNetPath)
     net = torch.load(settings.savedNetPath)
-    #net = net
     net.eval()
 else:
     print('Starting new network')
     net = model.LSTMnet(batchSize=batchSize)  #batchfirst [batch,seq,128]
+if not useCheckpoints:
+    if(os.path.exists(settings.checkpointPath)):
+        print('Deleting previous checkpoints')
+        os.remove(settings.checkpointPath)
 
 print(net)
 net = net.to(device) #Send to device (GPU or CPU)
@@ -94,6 +100,6 @@ del sampleInput,sampleInputTensor,sampleOutput,samplefs
 print('Starting network training')
 net = model.trainNetwork(net=net,trainSet=dataloaderTrain,testSet=dataloaderTest,validationSet=dataloaderValidation,cudaDevice=device)
 
-torch.save(net[0],'net.pt')
+torch.save(net[0],settings.savedNetPath)
 
 print('Main finished!')

@@ -13,20 +13,22 @@ class Settings:
     }
 
     hyperparameters = {
-        'epoch': 10,
-        'lr': 0.1,
-        'weightDecay': 0,
-        'batchSize':5,
+        'epoch': 8,
+        'lr': 0.5,
+        'weightDecay': 0.00,
+        'batchSize':1,
         'LSTMHiddenSize': 100,
-        'LSTMLayers': 3,
+        'LSTMLayers': 4,
         'dropoutProbability': 0.3
     }
     # various settings
     useSavedNet = False
-    savedNetPath = 'net.pt'
+    useCheckpoints = False
+    savedNetPath = "net.pt"
+    checkpointPath = "checkpoint.pt"
     pianoThresholding = 0.1 #other tests: 0.1,0.01 #1/128 = random
     diminishedSet = False
-    diminishFactor = 100
+    diminishFactor = 10
     printLossEverynEpoch = 1
     playSample = False
     printPlots = True
