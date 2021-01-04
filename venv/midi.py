@@ -7,9 +7,10 @@ import librosa.display
 import os
 import matplotlib as plt
 from Helperfunctions import reversepianoRoll
-from sounddevice import play,stop
+from sounddevice import play,stop,wait
 import time
 import warnings
+from scipy.io.wavfile import write
 
 defaultFs = 50 #100 #frequency of column updates per second. i.e each column is spaced apart by 1/fs seconds
     # should probably be made to depend on the tempo. So defaultFS = tempo*12; 12 times per quarter note allows to have proper timing
@@ -102,7 +103,7 @@ def plotPianoRoll(roll, startPitch=21,endPitch=108,settings = Settings(),fs = de
 
 
 
-def playPianoRoll(instrumentRoll,sf2Path=None,audioFs = audioFs,fs=defaultFs,playTime = -1,settings=Settings()):
+def playPianoRoll(instrumentRoll,sf2Path=None,audioFs = audioFs,fs=defaultFs,playTime = -1,saveAudio = False,saveAudioPath = None,settings=Settings()):
     """
 
     :param instrumentRoll: pianoroll [L x 128]
@@ -110,6 +111,8 @@ def playPianoRoll(instrumentRoll,sf2Path=None,audioFs = audioFs,fs=defaultFs,pla
     :param audioFs: created audio sample rate
     :param fs: piano roll sample rate
     :param playTime: how long to play
+    :param saveAudio: should audio file be saved
+    :param saveAudioPath: Where to save
     :return:
     """
     threshold = settings.pianoThresholding
@@ -129,6 +132,14 @@ def playPianoRoll(instrumentRoll,sf2Path=None,audioFs = audioFs,fs=defaultFs,pla
 
     if (playTime<0):
         playTime = (len(audio) / audioFs)
+
+    if (saveAudio):
+        if(saveAudioPath):
+          write(saveAudioPath,audioFs,audio)
+          print('playPianoRoll: audio saved as {}'.format(saveAudioPath))
+        else:
+            raise Exception('playPianoRoll: No audio save path given!')
+
 
     play(audio,audioFs)
     time.sleep(playTime)

@@ -1,13 +1,6 @@
-network:
-    hyperparameters = {
-        'epoch': 5,
-        'lr': 0.9,
-        'weightDecay': 0,
-        'batchSize':1,
-        'LSTMHiddenSize': 100,
-        'LSTMLayers': 5,
-        'dropoutProbability': 0.5
-	}
+Adding weight decay: no learning by network
+Adam optimizer instead of SGD: no learning (why?)
+
 
 seqlength = 600s
 1551 normal gpumem

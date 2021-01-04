@@ -3,12 +3,13 @@ import torch
 import torch.nn as nn
 import torch.nn.functional as F
 import torch.optim as optim
-import transformers as hf
-import torch.distributions as distributions
+#import transformers as hf
+#import torch.distributions as distributions
 from settings import Settings
 import numpy as np
 import matplotlib.pyplot as plt
 from Helperfunctions import tictoc
+#import nvidia_smi
 
 class LSTMnet(nn.Module):
     def __init__(self,batchSize,dropoutProbability = -1,settings = Settings()):
@@ -85,8 +86,8 @@ def trainNetwork(net,trainSet,testSet,validationSet,cudaDevice,settings=Settings
     if (lowMemory):
         torch.cuda.empty_cache()
 
-    criterion = nn.BCEWithLogitsLoss() #
-    optimizer = optim.Adam(net.parameters(),lr = lr,weight_decay=weightDecay)#optim.SGD(net.parameters(),lr = lr,weight_decay=weightDecay)
+    criterion = nn.BCEWithLogitsLoss()
+    optimizer = optim.SGD(net.parameters(),lr = lr,weight_decay=weightDecay) #optim.Adam(net.parameters(),lr = lr,weight_decay=weightDecay)#
 
     if(useCheckpoints and os.path.exists(checkpointPath)):
         checkpoint = torch.load(checkpointPath)
@@ -121,7 +122,7 @@ def trainNetwork(net,trainSet,testSet,validationSet,cudaDevice,settings=Settings
         print('trainNetwork: model in training mode')
         idx = 0
         for input,target,_ in trainSet:
-          #  print('  trainNetwork: training on sample {}'.format(idx))
+            print('  trainNetwork: training on sample {}'.format(idx))
           #  tictoc.tic() # ***
             #input and target dim [batch,seq,feature]
             # convert inputs and targets to tensors and send to Cuda
@@ -141,13 +142,12 @@ def trainNetwork(net,trainSet,testSet,validationSet,cudaDevice,settings=Settings
                     outputs = net(input)
                     if (batchSize == 1):
                         outputs = outputs.view(1, -1, 128)
-
-                    loss = criterion(outputs,target)
             else:
                 outputs = net(input)
                 if (batchSize == 1):
                     outputs = outputs.view(1, -1, 128)
-                loss = criterion(outputs,target)
+
+            loss = criterion(outputs, target)
 
             #backward pass
             if(lowMemory):
@@ -158,6 +158,8 @@ def trainNetwork(net,trainSet,testSet,validationSet,cudaDevice,settings=Settings
                 scaler.scale(loss).backward()
             else:
                 loss.backward()
+
+
             if (lowMemory):
                # print('After backward prop')
                # print('memory_allocated', torch.cuda.memory_allocated() / 1e9, 'memory_cached', torch.cuda.memory_cached() / 1e9)

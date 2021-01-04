@@ -1,6 +1,4 @@
 import os
-
-
 class Settings:
     root = os.path.dirname(os.path.realpath(__file__))
 
@@ -13,24 +11,26 @@ class Settings:
     }
 
     hyperparameters = {
-        'epoch': 8,
-        'lr': 0.5,
-        'weightDecay': 0.00,
+        'epoch': 30,
+        'lr': 0.9,
+        'weightDecay': 0,
         'batchSize':1,
         'LSTMHiddenSize': 100,
-        'LSTMLayers': 4,
-        'dropoutProbability': 0.3
+        'LSTMLayers': 3,
+        'dropoutProbability': 0.5
     }
     # various settings
-    useSavedNet = False
-    useCheckpoints = False
+    useSavedNet = True
+    useCheckpoints = True
     savedNetPath = "net.pt"
     checkpointPath = "checkpoint.pt"
-    pianoThresholding = 0.1 #other tests: 0.1,0.01 #1/128 = random
+
+    pianoThresholding = 0.0024
     diminishedSet = False
     diminishFactor = 10
     printLossEverynEpoch = 1
-    playSample = False
+    playSample = True
+    playSampleTime = 2
     printPlots = True
     lowMemory = True #try to reduce memory requirements through clearing caches and using fp16 for all gradients, etc
     reduceSequenceLengthSeconds = 60 # reduce sequence length to n seconds. Set to a value between [-inf:0] to have full sequence lengths

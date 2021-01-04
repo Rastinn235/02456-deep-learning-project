@@ -1,0 +1,6 @@
+Implement checking of network parameters in checkpointing
+	Validate that a saved checkpoint fits with the network parameters in settings
+
+	Currently have to manually delete the checkpoint any time settings is changed
+
+Create proper inference functions / programme 

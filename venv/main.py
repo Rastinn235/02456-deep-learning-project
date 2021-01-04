@@ -10,7 +10,7 @@ import os
 
 #project specific
 #import pandas as pd
-import transformers as hf #hf = huggingFace
+#import transformers as hf #hf = huggingFace
 import dataload2 as dl
 from settings import Settings
 from Helperfunctions import sigmoid
@@ -21,7 +21,7 @@ import model
 
 
 settings = Settings()
-torch.backends.cudnn.enabled = False
+
 
 printPlots = settings.printPlots
 playSample = settings.playSample
@@ -29,14 +29,18 @@ forceCPU = settings.forceCPU
 batchSize = settings.hyperparameters['batchSize']
 useSavedNet = settings.useSavedNet
 useCheckpoints = settings.useCheckpoints
+playSampleTime = settings.playSampleTime
+diminishedSet = settings.diminishedSet
 
 print("hello \n")
 useCuda,device = model.getDevice(forceCPU=forceCPU)
 print("Cuda available: ",useCuda,' device:', device,'\n')
+if(not useCuda):
+    settings.lowMemory = False
 if(settings.lowMemory):
     print("Using lowMemory settings")
     print("Autoscaling of loss and variables enabled")
-training,test,validation = dl.createMaestroDatasets(diminishedSet=settings.diminishedSet)
+training,test,validation = dl.createMaestroDatasets(diminishedSet=diminishedSet)
 
 #Load 1. sample and check it
 sampleInput,sampleTarget,samplefs = training[0]
@@ -54,13 +58,12 @@ if(printPlots):
 
 if(playSample): #play sample pianoroll
     #play the piano roll
-    midi.playPianoRoll(midiroll,fs=samplefs,playTime=2)
+    midi.playPianoRoll(sampleInput,fs=samplefs,playTime=playSampleTime,saveAudio=True,saveAudioPath='input.wav')
 
 # create dataloaders
 dataloaderTrain = DataLoader(training,batch_size=batchSize, shuffle=True)
 dataloaderValidation = DataLoader(validation,batch_size=batchSize, shuffle=True)
 dataloaderTest = DataLoader(test,batch_size=batchSize, shuffle=True)
-
 # init net
 if(useSavedNet):
     print('Using saved net: ',settings.savedNetPath)
@@ -85,7 +88,7 @@ sampleOutput = sigmoid.sigmoid(sampleOutput.cpu().detach().numpy())
 
 if(settings.playSample):
     print('playing sample output')
-    midi.playPianoRoll(sampleOutput, fs=samplefs,)
+    midi.playPianoRoll(sampleOutput, fs=samplefs,playTime=playSampleTime,saveAudio=True,saveAudioPath='sampleOutput.wav')
 if (printPlots):
     # plot notes
     midi.plotPianoRoll(sampleInput,fs=samplefs)
